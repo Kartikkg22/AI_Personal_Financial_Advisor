@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="C:\Users\DELL\AI_Personal_Financial_Advisor\static\register.css"
+    />
+    <title>Register - Personal Financial Advisor</title>
+  </head>
+  <body>
+    <div class="register-container">
+      <h2>Register</h2>
+      <form action="/register" method="POST">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required />
+
+        <label for="age">Age</label>
+        <input type="number" id="age" name="age" required />
+
+        <label for="income">Monthly Income</label>
+        <input type="number" id="income" name="income" required />
+
+        <label for="savings">Current Savings</label>
+        <input type="number" id="savings" name="savings" required />
+
+        <label for="expenses">Monthly Expenses</label>
+        <input type="number" id="expenses" name="expenses" required />
+
+        <button type="submit">Register</button>
+      </form>
+    </div>
+  </body>
+</html>

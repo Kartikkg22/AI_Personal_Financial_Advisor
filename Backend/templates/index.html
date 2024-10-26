@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../static/style.css" />
+    <title>AI Personal Financial Advisor</title>
+  </head>
+  <body>
+    <div class="container">
+      <h1>AI Personal Financial Advisor</h1>
+      <form id="advice-form">
+        <input
+          type="text"
+          id="financialData"
+          placeholder="Enter your financial details"
+          required
+        />
+        <button type="submit">Get Advice</button>
+      </form>
+      <div id="advice" class="advice"></div>
+    </div>
+    <script>
+      document
+        .getElementById("advice-form")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+          const financialData = document.getElementById("financialData").value;
+
+          const response = await fetch("/api/financial-advice", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ data: financialData }),
+          });
+
+          const result = await response.json();
+          document.getElementById("advice").innerText = result.advice;
+        });
+    </script>
+  </body>
+</html>
