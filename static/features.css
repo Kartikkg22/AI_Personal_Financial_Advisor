@@ -1,0 +1,97 @@
+/* Navbar Styling */
+header .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #00796b;
+    padding: 15px;
+    color: #ffffff;
+}
+
+header h1 {
+    font-size: 1.5rem;
+    color: #ffffff;
+}
+
+header nav ul {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+}
+
+header nav ul li {
+    display: inline;
+}
+
+header nav ul li a {
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 1rem;
+    transition: color 0.3s;
+}
+
+header nav ul li a:hover {
+    color: #cde6e3;
+}
+
+/* Login Button */
+.login-btn {
+    background-color: #ffffff;
+    color: #00796b;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.login-btn:hover {
+    background-color: #e0e0e0;
+}
+
+/* Features Page Styling */
+.features-container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.features-header h2 {
+    color: #3d5afe;
+    text-align: center;
+}
+
+.features-header p {
+    text-align: center;
+    color: #666;
+    font-size: 1rem;
+}
+
+.features-list ul {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 20px;
+    font-size: 1.1rem;
+    color: #444;
+}
+
+.features-list li {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: #f2f4ff;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+}
+
+footer {
+    text-align: center;
+    padding: 15px;
+    background-color: #3d5afe;
+    color: #ffffff;
+    margin-top: 20px;
+}

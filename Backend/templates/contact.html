@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="C:\Users\DELL\AI_Personal_Financial_Advisor\static\contact.css">
+    <title>Contact Us - Personal Financial Advisor</title>
+</head>
+<body>
+    <!-- Dashboard / Navigation Bar -->
+    <header>
+        <div class="navbar">
+            <h1>Personal Financial Advisor</h1>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="home_page.html">Home</a></li>
+                    <li><a href="about.html">About Us</a></li>
+                    <li><a href="features.html">Features</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
+            <button class="login-btn" onclick="window.location.href='login.html'">Login</button>
+        </div>
+    </header>
+
+    <!-- Contact Us Content -->
+    <main class="contact-container">
+        <section class="contact-header">
+            <h2>Contact Us</h2>
+            <p>If you have any questions, feedback, or need support, please reach out to us. We’re here to help!</p>
+        </section>
+
+        <section class="contact-form">
+            <form action="/submit-contact" method="POST">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required>
+
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+
+                <label for="subject">Subject:</label>
+                <input type="text" id="subject" name="subject" required>
+
+                <label for="message">Message:</label>
+                <textarea id="message" name="message" rows="5" required></textarea>
+
+                <button type="submit">Send Message</button>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Personal Financial Advisor. All Rights Reserved.</p>
+    </footer>
+</body>
+</html>
