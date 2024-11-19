@@ -1,0 +1,9 @@
+Flask==2.3.0
+Flask-MySQL==1.5.0
+TensorFlow==2.11.0
+PyTorch==1.13.0
+scikit-learn==1.1.2
+pandas==1.5.1
+numpy==1.23.2
+NLTK==3.8.1
+spaCy==3.4.1
