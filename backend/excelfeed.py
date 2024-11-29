@@ -1,31 +1,60 @@
 import requests
-import pandas as pd
+from bs4 import BeautifulSoup
+from openpyxl import Workbook, load_workbook
+import time
 from datetime import datetime
+import os
 
-# API endpoint (replace with the exact endpoint found in the Network tab)
-url = "https://www.google.com/finance/quote/INFY:NSE"
+ticker = 'INFY'
+url = f'https://www.google.com/finance/quote/{ticker}:NSE'
+file_name = "stock_prices.xlsx"
 
-# Make a request to Google Finance
-response = requests.get(url)
+def is_file_open(filepath):
+    try:
+        with open(filepath, 'a'):
+            pass
+        return False
+    except IOError:
+        return True
 
-if response.status_code == 200:
-    # Extract the relevant data (example structure may vary based on API response)
-    json_data = response.json()  # Assuming the API returns JSON
-    stock_price = json_data["price"]  # Replace with the actual field name in the API response
-    stock_name = json_data["name"]    # Replace with the actual field name
+try:
+    # Load or create Excel file
+    if os.path.exists(file_name):
+        workbook = load_workbook(file_name)
+        sheet = workbook.active
+    else:
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet['A1'] = "Timestamp"
+        sheet['B1'] = "Stock Symbol"
+        sheet['C1'] = "Stock Price"
 
-    # Prepare data for Excel
-    data = {
-        "Stock Name": [stock_name],
-        "Stock Price": [stock_price],
-        "Timestamp": [datetime.now()]
-    }
+    for i in range(3):  # Loop to fetch data
+        response = requests.get(url)
+        if response.status_code != 200:
+            print(f"Failed to fetch webpage: {response.status_code}")
+            break
 
-    # Convert to a DataFrame
-    df = pd.DataFrame(data)
+        soup = BeautifulSoup(response.text, 'html.parser')
 
-    # Save to Excel
-    df.to_excel("stock_prices.xlsx", index=False)
-    print("Real-time stock price saved to Excel!")
-else:
-    print("Failed to fetch data. Status code:", response.status_code)
+        try:
+            stock_price = soup.find('div', class_='YMlKec fxKbKc').text
+            print(f"Stock Price: {stock_price}")
+        except AttributeError:
+            print("Failed to locate stock price.")
+            break
+
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        sheet.append([current_time, f"{ticker}:NSE", stock_price])
+
+        if is_file_open(file_name):
+            print(f"Error: '{file_name}' is open. Please close it.")
+            break
+        else:
+            workbook.save(file_name)
+            print(f"Stock price saved to '{file_name}'.")
+
+        time.sleep(10)
+
+except Exception as e:
+    print(f"An error occurred: {e}")
