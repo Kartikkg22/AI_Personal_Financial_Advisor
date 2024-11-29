@@ -1,6 +1,6 @@
 <script setup>
 import { RouterLink, RouterView } from 'vue-router'
-import HomePage from './components/HomePage.vue'
+import HomePage1 from './components/HomePage1.vue'
 </script>
 
 <template>
@@ -8,12 +8,13 @@ import HomePage from './components/HomePage.vue'
 </template>
 
 <script>
+  import HomePage1 from "./components/HomePage1.vue"
   import HomePage from "./components/HomePage.vue"
   import ProfilePage from "./components/ProfilePage.vue"
   export default {
     components: {
-      HomePage,
-      ProfilePage
+      HomePage1,
+      ProfilePage,
     }
   }
 </script>

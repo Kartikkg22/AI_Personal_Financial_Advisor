@@ -137,3 +137,11 @@ GROUP BY
 ALTER TABLE users
 ADD COLUMN account_status ENUM('active', 'inactive') DEFAULT 'active';
 
+CREATE TABLE price_alerts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    stock_name VARCHAR(100) NOT NULL,
+    target_price DECIMAL(15, 2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

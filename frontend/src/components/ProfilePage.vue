@@ -1,43 +1,59 @@
 <template>
   <div class="profile-page">
     <header>
-      <h1>User Profile</h1>
-      <p>Welcome to your profile page.</p>
+      <h1>Your Profile</h1>
     </header>
 
-    <section v-if="profile">
+    <section v-if="user">
       <h2>Profile Details</h2>
-      <p><strong>Name:</strong> {{ profile.name }}</p>
-      <p><strong>Email:</strong> {{ profile.email }}</p>
+      <p><strong>Name:</strong> {{ user.name }}</p>
+      <p><strong>Email:</strong> {{ user.email }}</p>
+      <p><strong>Income:</strong> ${{ user.income }}</p>
+      <p><strong>Expenses:</strong> ${{ user.expenses }}</p>
+      <p><strong>Savings:</strong> ${{ user.savings }}</p>
     </section>
 
     <section v-else>
-      <p>Loading profile data...</p>
+      <p>Loading your profile...</p>
     </section>
   </div>
 </template>
 
 <script>
-import axios from 'axios';
+import axios from "axios";
 
 export default {
-  name: 'ProfilePage',
+  name: "ProfilePage",
   data() {
     return {
-      profile: null, // Store profile data
+      user: null, // To store user profile data
     };
   },
   mounted() {
-    // Fetch profile data from the backend
-    axios
-      .get('http://127.0.0.1:5000/api/profile') // Ensure the backend server is running
-      .then(response => {
-        console.log('profile data:',response.data)
-        this.profile = response.data;
-      })
-      .catch(error => {
-        console.error('Error fetching profile data:', error);
-      });
+    this.fetchUserProfile();
+  },
+  methods: {
+    async fetchUserProfile() {
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        console.error("No user ID found in localStorage. Redirecting to login.");
+        this.$router.push("/login"); // Redirect to login if not authenticated
+        return;
+      }
+
+      try {
+        const response = await axios.get(`http://127.0.0.1:5000/api/user/${userId}`);
+        this.user = response.data;
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        if (error.response && error.response.status === 404) {
+          alert("User not found. Please log in again.");
+          localStorage.removeItem("isAuthenticated");
+          localStorage.removeItem("userId");
+          this.$router.push("/login");
+        }
+      }
+    },
   },
 };
 </script>

@@ -8,9 +8,10 @@
 
     
     <nav>
-      <router-link to="/dashboard" class="btn btn-primary" >Go to Dashboard</router-link>
+      <router-link  href="#" :to="{name: 'StockMarketPage'}"class="btn btn-primary" @click="gotoStockMarket" >Go to Stock Market</router-link>
       <router-link href="#" :to="{name : 'ProfilePage'}" class="btn btn-secondary" @click ="gotoProfile">View Profile</router-link>
-      <router-link to="/reports" class="btn btn-success">See Reports</router-link>
+      <router-link  class="btn btn-success">See Reports</router-link>
+      <router-link href="#" :to="{name : 'CompleteProfile'}" class="btn btn-warning" @click="gotoCompleteProfile">Complete Profile</router-link>
     </nav>
 
     <section v-if="summary" class="financial-summary">
@@ -31,6 +32,8 @@ export default {
   data() {
     return {
       summary: null, // Sample financial summary data
+      isAuthenticated: localStorage.getItem("isAuthenticated") === "true",
+      user: localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null,
     };
   },
   mounted() {
@@ -39,7 +42,20 @@ export default {
   methods :{
     gotoProfile(){
       this.$router.push({ name : "ProfilePage"})
-    }
+    },
+    gotoCompleteProfile(){
+      this.$router.push({ name: "CompleteProfile" })
+    },
+    gotoStockMarket(){
+      this.$router.push({ name: "StockMarketPage"})
+    },
+    logout() {
+      localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("user");
+      this.isAuthenticated = false;
+      this.user = null;
+      this.$router.push("/login");
+    },
   }
 };
 </script>
@@ -97,7 +113,7 @@ nav {
 }
 
 .btn-primary {
-  background-color: #1976D2;
+  background-color: #757575;
   color: white;
 }
 
@@ -107,7 +123,12 @@ nav {
 }
 
 .btn-success {
-  background-color: #4CAF50;
+  background-color: #757575;
+  color: white;
+}
+
+.btn-warning{
+  background-color: #757575;
   color: white;
 }
 
