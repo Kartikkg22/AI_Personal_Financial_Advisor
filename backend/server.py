@@ -6,12 +6,12 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from db_connection import get_db_connection
-from sklearn.linear_model import LinearRegression
 from transformers import pipeline
-from datetime import datetime
+from datetime import datetime,timedelta
 import yfinance as yf
 import numpy as np
 from io import BytesIO
+from sklearn.linear_model import LinearRegression
 import mysql.connector
 from datetime import datetime
 
@@ -173,29 +173,30 @@ def get_user_portfolio(user_id):
         conn.close()
 
 @app.route('/api/portfolio', methods=['POST'])
-def add_to_portfolio():
+def add_portfolio():
     data = request.json
     user_id = data.get('userId')
-    stock = data.get('stock')
-    amount = data.get('amount')
+    portfolio = data.get('portfolio')
 
-    if not user_id or not stock or not amount:
-        return jsonify({"error": "All fields are required"}), 400
+    if not user_id or not portfolio:
+        return jsonify({"error": "User ID and portfolio data are required"}), 400
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        cursor.execute("""
-            INSERT INTO investment_portfolio (user_id, asset_name, amount, date_of_investment)
-            VALUES (%s, %s, %s, %s)
-        """, (user_id, stock, amount, datetime.now()))
+        for stock in portfolio:
+            cursor.execute("""
+                INSERT INTO investment_portfolio (user_id, asset_name, amount, date_of_investment)
+                VALUES (%s, %s, %s, %s)
+            """, (user_id, stock['name'], stock['amount'], stock['date']))
         conn.commit()
-        return jsonify({"message": "Stock added to portfolio successfully"}), 201
+        return jsonify({"message": "Portfolio updated successfully"}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
+
 
 @app.route('/api/price-alert', methods=['POST'])
 def set_price_alert():
@@ -278,6 +279,38 @@ def load_company_data(company_name):
         print(f"Error loading data for {company_name}: {e}")
         return None
 
+def predict_future_prices(data, future_days=10):
+    """
+    Predict future stock prices using Linear Regression.
+    Args:
+        data (pd.DataFrame): DataFrame with 'Date' and 'Close' columns.
+        future_days (int): Number of days to predict.
+    Returns:
+        predicted_dates (list): List of future dates.
+        predictions (list): List of predicted prices.
+    """
+    # Convert dates to numerical values for regression
+    data["Day"] = (data["Date"] - data["Date"].min()).dt.days
+
+    # Features and target
+    X = data[["Day"]]
+    y = data["Low"]
+
+    # Train Linear Regression model
+    model = LinearRegression()
+    model.fit(X, y)
+
+    # Predict future values
+    last_day = data["Day"].iloc[-1]
+    predicted_days = np.arange(last_day + 1, last_day + future_days + 1).reshape(-1, 1)
+    predictions = model.predict(predicted_days)
+
+    # Generate corresponding dates for predictions
+    last_date = data["Date"].iloc[-1]
+    predicted_dates = [last_date + timedelta(days=i) for i in range(1, future_days + 1)]
+
+    return predicted_dates, predictions
+
 # Route to generate candlestick chart
 @app.route("/api/line-chart/<company_name>", methods=["GET"])
 def generate_line_chart(company_name):
@@ -308,6 +341,128 @@ def generate_line_chart(company_name):
     plt.close(fig)
 
     return send_file(img, mimetype="image/png")
+
+@app.route('/api/predict/<company_name>', methods=['GET'])
+def predict_company_stock(company_name):
+    df = load_company_data(company_name)
+    if df is None:
+        return jsonify({"error": "Invalid company name or data unavailable"}), 400
+
+    # Use your prediction function (e.g., Linear Regression)
+    future_dates, predicted_prices = predict_future_prices(df, future_days=10)
+
+    # Determine the trend
+    trend = "Upward" if predicted_prices[-1] > predicted_prices[0] else "Downward"
+
+    # Prepare JSON response
+    predictions = [{"date": future_dates[i].strftime("%d-%m-%Y"), "price": predicted_prices[i]} for i in range(len(future_dates))]
+    return jsonify({"predictions": predictions, "trend": trend})
+
+def recommend_investments(user_id, portfolio, future_predictions):
+    """
+    Generate investment recommendations based on the user's portfolio and predictions.
+    Args:
+        user_id (int): User ID.
+        portfolio (list): List of user's current investments.
+        future_predictions (dict): Predicted stock prices.
+    Returns:
+        list: Recommendations for investments.
+    """
+    recommendations = []
+
+    for stock in portfolio:
+        stock_name = stock["name"]
+        current_price = float(stock["amount"])  # Convert Decimal to float
+        target_price = current_price * 1.2  # Example target: 20% growth
+
+        # Fetch future prediction for this stock
+        predicted_data = future_predictions.get(stock_name)
+        print(predicted_data)
+        if predicted_data:
+            predicted_prices = predicted_data["predicted_prices"]
+            trend = predicted_data["trend"]
+            
+            # Provide recommendation based on trend
+            if trend == "Upward":
+                recommendations.append({
+                    "stock": stock_name,
+                    "current_price": current_price,
+                    "target_price": target_price,
+                    "status": "Recommended",
+                    "reason": f"The stock is predicted to go upwards. Consider buying."
+                })
+            elif trend == "Downward":
+                recommendations.append({
+                    "stock": stock_name,
+                    "current_price": current_price,
+                    "target_price": target_price,
+                    "status": "Not Recommended",
+                    "reason": f"The stock is predicted to go downwards. Consider selling or avoiding."
+                })
+            else:
+                recommendations.append({
+                    "stock": stock_name,
+                    "current_price": current_price,
+                    "target_price": target_price,
+                    "status": "Neutral",
+                    "reason": f"The stock trend is stable. Hold off on major decisions."
+                })
+        else:
+            # If predictions are not available, provide a default recommendation
+            recommendations.append({
+                "stock": stock_name,
+                "current_price": current_price,
+                "target_price": target_price,
+                "status": "No Prediction Available",
+                "reason": f"No predictions are available for {stock_name}."
+            })
+
+    return recommendations
+
+
+@app.route('/api/recommendations/<int:user_id>', methods=['GET'])
+def portfolio_recommendations(user_id):
+    # Fetch the user's portfolio
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT asset_name AS name, amount, amount * 1.05 AS currentValue
+        FROM investment_portfolio
+        WHERE user_id = %s
+    """, (user_id,))
+    portfolio = cursor.fetchall()
+
+    print("User Portfolio:", portfolio)
+
+    # Fetch predictions for each stock in the portfolio
+    future_predictions = {}
+    for stock in portfolio:
+        stock_name = stock["name"]
+        df = load_company_data(stock_name)  # Load company data for each stock
+        print(df)
+        if df is not None:
+            # Predict future prices for this stock
+            future_dates, predicted_prices = predict_future_prices(df, future_days=10)
+            trend = "Upward" if predicted_prices[-1] > predicted_prices[0] else "Downward"
+
+            # Store predictions and trend for each stock in the future_predictions dictionary
+            future_predictions[stock_name] = {
+                "predicted_prices": predicted_prices,
+                "trend": trend
+            }
+        else:
+            print(f"Error loading data for {stock_name}")
+
+    print("Future Predictions:", future_predictions)
+
+    # Generate recommendations
+    recommendations = recommend_investments(user_id, portfolio, future_predictions)
+
+    # Close database connection
+    conn.close()
+
+    # Return portfolio and recommendations as JSON
+    return jsonify({"portfolio": portfolio, "recommendations": recommendations})
 
 if __name__ == '__main__':
     app.run(debug=True)

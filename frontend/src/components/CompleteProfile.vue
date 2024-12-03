@@ -1,96 +1,133 @@
 <template>
-    <div class="complete-profile-page">
-      <h1>Complete Your Profile</h1>
-      <form @submit.prevent="handleSubmit">
-        <!-- Income Field -->
+  <div class="complete-profile-page">
+    <h1>Complete Your Profile</h1>
+    <form @submit.prevent="handleSubmit">
+      <!-- Income Field -->
+      <div class="form-group">
+        <label for="income">Income</label>
+        <input type="number" id="income" v-model="income" placeholder="Enter your income" required />
+      </div>
+
+      <!-- Expenses Field -->
+      <div class="form-group">
+        <label for="expenses">Expenses</label>
+        <input type="number" id="expenses" v-model="expenses" placeholder="Enter your expenses" required />
+      </div>
+
+      <!-- Savings Field -->
+      <div class="form-group">
+        <label for="savings">Savings</label>
+        <input type="number" id="savings" v-model="savings" placeholder="Enter your savings" required />
+      </div>
+
+      <!-- Goals Field -->
+      <div class="form-group">
+        <label for="goals">Goals (e.g., retirement, vacation)</label>
+        <textarea id="goals" v-model="goals" placeholder="Enter your financial goals"></textarea>
+      </div>
+
+      <!-- Portfolio Section -->
+      <h2>Add Your Portfolio</h2>
+      <div v-for="(stock, index) in portfolio" :key="index" class="portfolio-group">
         <div class="form-group">
-          <label for="income">Income</label>
-          <input type="number" id="income" v-model="income" placeholder="Enter your income" required />
+          <label>Stock Name</label>
+          <input type="text" v-model="stock.name" placeholder="Enter stock name" required />
         </div>
-  
-        <!-- Expenses Field -->
         <div class="form-group">
-          <label for="expenses">Expenses</label>
-          <input type="number" id="expenses" v-model="expenses" placeholder="Enter your expenses" required />
+          <label>Investment Amount</label>
+          <input type="number" v-model="stock.amount" placeholder="Enter investment amount" required />
         </div>
-  
-        <!-- Savings Field -->
         <div class="form-group">
-          <label for="savings">Savings</label>
-          <input type="number" id="savings" v-model="savings" placeholder="Enter your savings" required />
+          <label>Date of Investment</label>
+          <input type="date" v-model="stock.date" required />
         </div>
-  
-        <!-- Goals Field -->
-        <div class="form-group">
-          <label for="goals">Goals (e.g., retirement, vacation)</label>
-          <textarea id="goals" v-model="goals" placeholder="Enter your financial goals"></textarea>
-        </div>
-  
-        <button type="submit" class="btn btn-primary">Save Profile</button>
-      </form>
-  
-      <p v-if="message" :class="messageClass">{{ message }}</p>
-    </div>
-  </template>
-  
-  <script>
-  import axios from "axios";
-  
-  export default {
-    name: "CompleteProfile",
-    data() {
-      return {
-        income: "",
-        expenses: "",
-        savings: "",
-        goals: "",
-        message: null,
-        messageClass: null, // To indicate success or error
-      };
+        <button type="button" @click="removeStock(index)" class="btn btn-secondary">Remove Stock</button>
+      </div>
+      <button type="button" @click="addStock" class="btn btn-secondary">Add Another Stock</button>
+
+      <!-- Submit Button -->
+      <button type="submit" class="btn btn-primary">Save Profile</button>
+    </form>
+
+    <p v-if="message" :class="messageClass">{{ message }}</p>
+  </div>
+</template>
+
+<script>
+import axios from "axios";
+
+export default {
+  name: "CompleteProfile",
+  data() {
+    return {
+      income: "",
+      expenses: "",
+      savings: "",
+      goals: "",
+      portfolio: [
+        { name: "", amount: "", date: "" }, // Default single stock entry
+      ],
+      message: null,
+      messageClass: null, // To indicate success or error
+    };
+  },
+  methods: {
+    addStock() {
+      this.portfolio.push({ name: "", amount: "", date: "" });
     },
-    methods: {
-      async handleSubmit() {
-        const userId = localStorage.getItem("userId");
-        if (!userId) {
-          this.message = "You need to log in to complete your profile.";
-          this.messageClass = "error";
-          return;
-        }
-  
-        try {
-          const response = await axios.post(`http://127.0.0.1:5000/api/complete-profile`, {
-            userId,
-            income: this.income,
-            expenses: this.expenses,
-            savings: this.savings,
-            goals: this.goals,
-          });
-  
-          this.message = "Profile updated successfully!";
-          this.messageClass = "success";
-  
-          // Clear the form fields
-          this.income = "";
-          this.expenses = "";
-          this.savings = "";
-          this.goals = "";
-  
-          // Redirect to the profile page
-          setTimeout(() => {
-            this.$router.push("/profile");
-          }, 2000);
-        } catch (error) {
-          console.error(error);
-          this.message = "An error occurred while updating your profile. Please try again.";
-          this.messageClass = "error";
-        }
-      },
+    removeStock(index) {
+      this.portfolio.splice(index, 1);
     },
-  };
-  </script>
-  
-  <style scoped>
-  .complete-profile-page {
+    async handleSubmit() {
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        this.message = "You need to log in to complete your profile.";
+        this.messageClass = "error";
+        return;
+      }
+
+      try {
+        // Save user profile data
+        await axios.post(`http://127.0.0.1:5000/api/complete-profile`, {
+          userId,
+          income: this.income,
+          expenses: this.expenses,
+          savings: this.savings,
+          goals: this.goals,
+        });
+
+        // Save stock portfolio data
+        await axios.post(`http://127.0.0.1:5000/api/portfolio`, {
+          userId,
+          portfolio: this.portfolio,
+        });
+
+        this.message = "Profile and portfolio updated successfully!";
+        this.messageClass = "success";
+
+        // Clear the form fields
+        this.income = "";
+        this.expenses = "";
+        this.savings = "";
+        this.goals = "";
+        this.portfolio = [{ name: "", amount: "", date: "" }];
+
+        // Redirect to the profile page
+        setTimeout(() => {
+          this.$router.push("/profile");
+        }, 2000);
+      } catch (error) {
+        console.error(error);
+        this.message = "An error occurred while updating your profile or portfolio. Please try again.";
+        this.messageClass = "error";
+      }
+    },
+  },
+};
+</script>
+
+<style scoped>
+.complete-profile-page {
     max-width: 600px;
     margin: 0 auto;
     padding: 20px;
@@ -143,5 +180,20 @@
     color: red;
     text-align: center;
   }
-  </style>
-  
+
+  .portfolio-group {
+    border: 1px solid #ccc;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+  }
+  .btn-secondary {
+    margin-top: 10px;
+    background-color: #6c757d;
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+</style>
