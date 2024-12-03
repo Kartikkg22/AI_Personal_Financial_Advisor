@@ -1,53 +1,22 @@
 from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
-import mysql.connector
-import yfinance as yf
-from transformers import pipeline
-from sklearn.linear_model import LinearRegression
-import numpy as np
-import pandas as pd
-from datetime import datetime
-import pandas as pd
-import mplfinance as mpf
 import os
+import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 from db_connection import get_db_connection
+from sklearn.linear_model import LinearRegression
+from transformers import pipeline
+from datetime import datetime
+import yfinance as yf
+import numpy as np
+from io import BytesIO
+import mysql.connector
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
-
-@app.route('/api/candlestick-chart', methods=['GET'])
-def get_candlestick_chart():
-    # Path to the Excel file (replace with your actual file path)
-    excel_file_path = "real_time_stock_data.xlsx"
-    
-    # Check if the file exists
-    if not os.path.exists(excel_file_path):
-        return {"error": "Excel file not found"}, 404
-
-    try:
-        # Read the Excel file
-        data = pd.read_excel(excel_file_path)
-
-        # Validate required columns
-        required_columns = ["Date", "Open", "High", "Low", "Close", "Volume"]
-        if not all(column in data.columns for column in required_columns):
-            return {"error": f"Excel file must contain the following columns: {required_columns}"}, 400
-
-        # Convert 'Date' to datetime and set as index
-        data["Date"] = pd.to_datetime(data["Date"])
-        data.set_index("Date", inplace=True)
-
-        # Generate the candlestick chart
-        chart_file_path = "static/candlestick_chart.png"  # Save chart as PNG
-        mpf.plot(data, type="candle", style="charles", volume=True, 
-                 title="Stock Prices", ylabel="Price (INR)", savefig=chart_file_path)
-
-        # Return the chart as a static image
-        return send_file(chart_file_path, mimetype="image/png")
-
-    except Exception as e:
-        return {"error": str(e)}, 500
-
 
 # Example route for checking server status
 @app.route('/api/status', methods=['GET'])
@@ -271,6 +240,74 @@ def get_market_news():
 
 # Initialize sentiment analysis pipeline
 sentiment_model = pipeline("sentiment-analysis")
+
+def load_company_data(company_name):
+    try:
+        file_paths = {
+            "Infosys": "infosys_data.xlsx",
+            "Wipro": "wipro_data.xlsx",
+            "Tata Steel": "tata_steel_data.xlsx",
+            "Zomato": "zomato_data.xlsx",
+        }
+
+        if company_name not in file_paths:
+            return None
+
+        # Read the Excel file
+        df = pd.read_excel(file_paths[company_name])
+
+        # Debug: Print columns to verify
+        print(f"Columns in {company_name} dataset: {df.columns.tolist()}")
+
+        # Ensure the required columns exist
+        if "Date" not in df.columns or "Low" not in df.columns:
+            raise ValueError(f"Dataset for {company_name} is missing required columns: 'Date' or 'Close'")
+
+        # Parse 'Date' column with the format 'DD-MM-YYYY'
+        df["Date"] = pd.to_datetime(df["Date"], format="%d-%m-%Y", errors="coerce")
+
+        # Drop rows with invalid dates
+        df = df.dropna(subset=["Date"])
+
+        # Sort data by date
+        df = df.sort_values("Date")
+
+        return df
+
+    except Exception as e:
+        print(f"Error loading data for {company_name}: {e}")
+        return None
+
+# Route to generate candlestick chart
+@app.route("/api/line-chart/<company_name>", methods=["GET"])
+def generate_line_chart(company_name):
+    df = load_company_data(company_name)
+    if df is None:
+        return jsonify({"error": "Invalid company name or data unavailable"}), 400
+
+    # Generate line chart
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Plot Date vs Close price
+    ax.plot(df["Date"], df["Low"], color="blue", marker="o", linestyle="-", linewidth=2, markersize=4)
+
+    # Add labels and title
+    ax.set_title(f"Line Chart - {company_name} Closing Prices", fontsize=16)
+    ax.set_xlabel("Date", fontsize=12)
+    ax.set_ylabel("Closing Price (INR)", fontsize=12)
+    ax.grid(visible=True, linestyle="--", alpha=0.7)
+
+    # Format x-axis for better readability
+    plt.xticks(rotation=45, fontsize=10)
+    plt.tight_layout()
+
+    # Save plot to a BytesIO stream
+    img = BytesIO()
+    plt.savefig(img, format="png")
+    img.seek(0)
+    plt.close(fig)
+
+    return send_file(img, mimetype="image/png")
 
 if __name__ == '__main__':
     app.run(debug=True)
